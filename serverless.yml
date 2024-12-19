@@ -1,0 +1,121 @@
+service: mutual-fund-brokerage
+
+frameworkVersion: '3'
+
+custom:
+  webpack:
+    webpackConfig: './webpack.config.js'
+  env: ${env:ENVIRONMENT, 'dev'}
+  region: ${opt:REGION, 'us-east-1'}
+  accountId: ${env:AWS_ACCOUNT_ID, aws:accountId}
+  postfixes:
+    dev: '-dev'
+    uat: '-uat'
+    prod: ''
+  postfix: ${self:custom.postfixes.${self:custom.env}}
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${self:custom.env}
+  region: ${self:custom.region}
+  environment: ${file(./config/sls.environments.yml):${self:custom.env}}
+  stackName: ${self:service}${self:custom.postfix}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:${self:custom.accountId}:table/users-table
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+      Resource: arn:aws:secretsmanager:${self:provider.region}:${self:custom.accountId}:secret:dev/auth/jwt*
+
+plugins:
+  - serverless-webpack
+
+package:
+  individually: true
+
+functions:
+  RegisterHandler:
+    handler: src/functions/RegisterHandler/index.handler
+    name: RegisterHandler${self:custom.postfix}
+    events:
+      - http:
+          path: /register
+          method: post
+          cors: true
+    timeout: 60
+
+  LoginHandler:
+    handler: src/functions/LoginHandler/index.handler
+    name: LoginHandler${self:custom.postfix}
+    events:
+      - http:
+          path: /login
+          method: post
+          cors: true
+    timeout: 60
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: users-table
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    # PortfolioTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: ${self:custom.tableName.portfolio}
+    #     AttributeDefinitions:
+    #       - AttributeName: userId
+    #         AttributeType: S
+    #       - AttributeName: fundId
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: userId
+    #         KeyType: HASH
+    #       - AttributeName: fundId
+    #         KeyType: RANGE
+    #     BillingMode: PAY_PER_REQUEST
+
+    # FundTrackingTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: ${self:custom.tableName.fundTracking}
+    #     AttributeDefinitions:
+    #       - AttributeName: fundId
+    #         AttributeType: S
+    #       - AttributeName: timestamp
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: fundId
+    #         KeyType: HASH
+    #       - AttributeName: timestamp
+    #         KeyType: RANGE
+    #     BillingMode: PAY_PER_REQUEST
+
+  # Outputs:
+  #   ApiEndpoint:
+  #     Description: "API Gateway endpoint URL"
+  #     Value: 
+  #       Fn::Join:
+  #         - ""
+  #         - - "https://"
+  #           - Ref: ApiGatewayRestApi
+  #           - ".execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}"

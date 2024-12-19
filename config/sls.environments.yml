@@ -1,0 +1,11 @@
+dev:
+  JWT_SECRET: dev/auth/jwt
+  USERS_TABLE: users-table
+
+
+#uat:
+#  JWT_SECRET: uat/auth/jwt
+
+
+#prod:
+#  JWT_SECRET: prod/auth/jwt
