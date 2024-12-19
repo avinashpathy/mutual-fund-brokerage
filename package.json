@@ -9,10 +9,17 @@
     "build": "tsc",
     "test": "jest"
   },
-  "keywords": ["mutual-fund", "investment", "serverless"],
+  "keywords": [
+    "mutual-fund",
+    "investment",
+    "serverless"
+  ],
   "author": "Avinash Pathy",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.714.0",
+    "@aws-sdk/client-secrets-manager": "^3.714.0",
+    "@aws-sdk/lib-dynamodb": "^3.714.0",
     "aws-sdk": "^2.1056.0",
     "axios": "^0.24.0",
     "bcryptjs": "^2.4.3",
@@ -20,18 +27,18 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.83",
-    "@types/bcryptjs": "^2.4.2",
-    "@types/jsonwebtoken": "^8.5.6",
+    "@types/aws-lambda": "^8.10.146",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^8.5.9",
     "@types/node": "^16.11.7",
     "@types/uuid": "^8.3.3",
+    "fork-ts-checker-webpack-plugin": "^9.0.2",
     "serverless-offline": "^8.3.1",
     "serverless-typescript": "0.0.5",
-    "ts-node": "^10.4.0",
-    "fork-ts-checker-webpack-plugin": "^9.0.2",
     "serverless-webpack": "^5.13.0",
     "terser-webpack-plugin": "^5.3.10",
     "ts-loader": "^9.5.1",
+    "ts-node": "^10.4.0",
     "typescript": "^5.3.3",
     "webpack": "^5.90.1",
     "webpack-node-externals": "^3.0.0"
