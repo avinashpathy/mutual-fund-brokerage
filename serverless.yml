@@ -32,6 +32,8 @@ provider:
         - dynamodb:DeleteItem
       Resource:
         - arn:aws:dynamodb:${self:provider.region}:${self:custom.accountId}:table/users-table
+        - arn:aws:dynamodb:${self:provider.region}:${self:custom.accountId}:table/mutual-fund-tracking-table
+        - arn:aws:dynamodb:${self:provider.region}:${self:custom.accountId}:table/portfolio-table
     - Effect: Allow
       Action:
         - secretsmanager:GetSecretValue
@@ -64,6 +66,57 @@ functions:
           cors: true
     timeout: 60
 
+  AuthHandler:
+    handler: src/functions/AuthHandler/index.handler
+    name: AuthHandler${self:custom.postfix}
+    timeout: 60
+
+  MutualFundHandler:
+    handler: src/functions/MutualFundHandler/index.handler
+    events:
+      - http:
+          path: /mutual-funds
+          method: get
+          cors: true
+          authorizer:
+            name: AuthHandler
+            type: token
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 300 
+
+  PortfolioHandler:
+    handler: src/functions/PortfolioHandler/index.handler
+    events:
+      - http:
+          path: /portfolio
+          method: get
+          cors: true
+          authorizer:
+            name: AuthHandler
+            type: token
+            identitySource: method.request.header.Authorization
+      - http:
+          path: /portfolio
+          method: post
+          cors: true
+          authorizer:
+            name: AuthHandler
+            type: token
+            identitySource: method.request.header.Authorization
+      - http:
+          path: /portfolio
+          method: delete
+          cors: true
+          authorizer:
+            name: AuthHandler
+            type: token
+            identitySource: method.request.header.Authorization
+
+  UpdateNavsHandler:
+    handler: src/functions/UpdateNavsHandler/index.handler
+    events:
+      - schedule: rate(1 hour)
+
 resources:
   Resources:
     UsersTable:
@@ -78,37 +131,57 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
 
-    # PortfolioTable:
-    #   Type: AWS::DynamoDB::Table
-    #   Properties:
-    #     TableName: ${self:custom.tableName.portfolio}
-    #     AttributeDefinitions:
-    #       - AttributeName: userId
-    #         AttributeType: S
-    #       - AttributeName: fundId
-    #         AttributeType: S
-    #     KeySchema:
-    #       - AttributeName: userId
-    #         KeyType: HASH
-    #       - AttributeName: fundId
-    #         KeyType: RANGE
-    #     BillingMode: PAY_PER_REQUEST
+    PortfolioTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: portfolio-table
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: fundId
+            AttributeType: N
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: fundId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
 
-    # FundTrackingTable:
-    #   Type: AWS::DynamoDB::Table
-    #   Properties:
-    #     TableName: ${self:custom.tableName.fundTracking}
-    #     AttributeDefinitions:
-    #       - AttributeName: fundId
-    #         AttributeType: S
-    #       - AttributeName: timestamp
-    #         AttributeType: S
-    #     KeySchema:
-    #       - AttributeName: fundId
-    #         KeyType: HASH
-    #       - AttributeName: timestamp
-    #         KeyType: RANGE
-    #     BillingMode: PAY_PER_REQUEST
+    FundTrackingTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: mutual-fund-tracking-table
+        AttributeDefinitions:
+          - AttributeName: fundId
+            AttributeType: N
+          - AttributeName: timestamp
+            AttributeType: S
+        KeySchema:
+          - AttributeName: fundId
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: LastUpdatedIndex
+            KeySchema:
+              - AttributeName: timestamp
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
 
   # Outputs:
   #   ApiEndpoint:
