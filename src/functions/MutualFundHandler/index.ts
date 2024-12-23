@@ -3,16 +3,12 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import axios from "axios";
 import { createResponse } from "../../../utils/helpers";
+import { SecretManager } from "../../managers/secret-manager";
+import { Config } from "../../../utils/config";
 
 const dynamoDb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-
-const rapidApiClient = axios.create({
-  baseURL: "https://latest-mutual-fund-nav.p.rapidapi.com",
-  headers: {
-    "X-RapidAPI-Key": process.env.RAPIDAPI_KEY as string,
-    "X-RapidAPI-Host": "latest-mutual-fund-nav.p.rapidapi.com",
-  },
-});
+const { RAPIDAPI_KEY } = new Config();
+const secretManager = new SecretManager();
 
 interface MutualFundScheme {
   Scheme_Code: number;
@@ -26,6 +22,22 @@ interface MutualFundScheme {
   Mutual_Fund_Family: string;
 }
 
+let rapidApiClient: any = null;
+
+const initializeRapidApiClient = async () => {
+  if (!rapidApiClient) {
+    const secrets = await secretManager.getSecret(RAPIDAPI_KEY);
+    rapidApiClient = axios.create({
+      baseURL: "https://latest-mutual-fund-nav.p.rapidapi.com",
+      headers: {
+        "X-RapidAPI-Key": secrets.RAPIDAPI_KEY,
+        "X-RapidAPI-Host": "latest-mutual-fund-nav.p.rapidapi.com",
+      },
+    });
+  }
+  return rapidApiClient;
+};
+
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
     const operation = event.queryStringParameters?.operation;
@@ -35,6 +47,9 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         message: "Operation parameter is required (families or schemes)",
       });
     }
+
+    // Initialize API client with secret
+    await initializeRapidApiClient();
 
     switch (operation) {
       case "families": {
@@ -120,7 +135,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             });
           }
 
-          // Filter schemes for the specific family
           const schemes = response.data.filter(
             (scheme: MutualFundScheme) =>
               scheme.Mutual_Fund_Family.toLowerCase() ===
@@ -132,13 +146,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
               message: `No schemes found for fund family: ${familyName}`,
               availableFamilies: [
                 ...new Set(
-                  response.data.map((scheme) => scheme.Mutual_Fund_Family)
+                  response.data.map((scheme: any) => scheme.Mutual_Fund_Family)
                 ),
               ].sort(),
             });
           }
 
-          // Store schemes in DynamoDB
           const timestamp = new Date().toISOString();
           const promises = schemes.map((scheme: MutualFundScheme) => {
             return dynamoDb.send(
@@ -160,7 +173,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
           await Promise.all(promises);
 
-          // Group schemes by category for better organization
           const schemesByCategory = schemes.reduce(
             (acc: any, scheme: MutualFundScheme) => {
               const category = scheme.Scheme_Category || "Uncategorized";
