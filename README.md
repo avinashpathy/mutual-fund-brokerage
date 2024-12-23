@@ -54,3 +54,8 @@
     - The request body which you have to pass for each endpoint is provided in the above collection.
     - For /mutual-funds and /portfolio, you have to choose Auth Type as JWT Bearer and give the secret what you have created in AWS Secrets Manager.
 
+- Database Creation:
+  - Databases are created using Serverless framework. 
+  - Here is the link to the resource creation code (Line 125-205): https://github.com/avinashpathy/mutual-fund-brokerage/blob/5736a0e57f7221e571b2b36678f94a7cd4a09527/serverless.yml#L125
+
+  Please feel free to reach out to <a href = "avinashpathy2001@gmail.com">avinashpathy2001@gmail.com</a> if you have any doubts.
