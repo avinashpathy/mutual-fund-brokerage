@@ -29,7 +29,6 @@ interface MutualFundScheme {
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
     const operation = event.queryStringParameters?.operation;
-    console.log("incoming event", event);
 
     if (!operation) {
       return createResponse(400, {
@@ -39,15 +38,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
     switch (operation) {
       case "families": {
-        console.log("Fetching fund families");
         try {
           const response = await rapidApiClient.get("/latest", {
             params: {
               Scheme_Type: "Open",
             },
           });
-
-          console.log("families response", response);
 
           if (!Array.isArray(response.data)) {
             console.error("Unexpected API response format:", response.data);
@@ -57,18 +53,16 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             });
           }
 
-          // Extract unique fund houses and sort them alphabetically
           const families = [
             ...new Set(
               response.data
                 .map((fund: MutualFundScheme) => fund.Mutual_Fund_Family)
-                .filter(Boolean) // Remove any null/undefined values
+                .filter(Boolean)
             ),
           ].sort();
 
           console.log(`Found ${families.length} unique fund families`);
 
-          // Create a structured response with family details
           const familiesWithDetails = families.map((familyName) => {
             const familySchemes = response.data.filter(
               (scheme: MutualFundScheme) =>
@@ -118,8 +112,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
               Scheme_Type: "Open",
             },
           });
-
-          console.log("schemes response", response);
 
           if (!Array.isArray(response.data)) {
             return createResponse(500, {

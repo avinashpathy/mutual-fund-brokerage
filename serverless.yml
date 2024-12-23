@@ -34,6 +34,7 @@ provider:
         - arn:aws:dynamodb:${self:provider.region}:${self:custom.accountId}:table/users-table
         - arn:aws:dynamodb:${self:provider.region}:${self:custom.accountId}:table/mutual-fund-tracking-table
         - arn:aws:dynamodb:${self:provider.region}:${self:custom.accountId}:table/portfolio-table
+        - arn:aws:dynamodb:${self:provider.region}:${self:custom.accountId}:table/portfolio-update-table
     - Effect: Allow
       Action:
         - secretsmanager:GetSecretValue
@@ -183,12 +184,19 @@ resources:
           AttributeName: ttl
           Enabled: true
 
-  # Outputs:
-  #   ApiEndpoint:
-  #     Description: "API Gateway endpoint URL"
-  #     Value: 
-  #       Fn::Join:
-  #         - ""
-  #         - - "https://"
-  #           - Ref: ApiGatewayRestApi
-  #           - ".execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}"
+    PortfolioValueTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: portfolio-update-table
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+  

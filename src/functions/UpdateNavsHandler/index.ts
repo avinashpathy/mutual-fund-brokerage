@@ -1,62 +1,91 @@
-import { APIGatewayProxyHandler } from "aws-lambda";
+// portfolioValueUpdater.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
-  PutCommand,
   QueryCommand,
+  PutCommand,
+  ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
-import axios from "axios";
 
 const dynamoDb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-const rapidApiClient = axios.create({
-  baseURL: "https://latest-mutual-fund-nav.p.rapidapi.com",
-  headers: {
-    "X-RapidAPI-Key": process.env.RAPIDAPI_KEY as string,
-    "X-RapidAPI-Host": "latest-mutual-fund-nav.p.rapidapi.com",
-  },
-});
 
 export const handler = async () => {
   try {
-    const portfolioFunds = await dynamoDb.send(
-      new QueryCommand({
+    // Get all unique users with investments
+    const usersResult = await dynamoDb.send(
+      new ScanCommand({
         TableName: process.env.PORTFOLIO_TABLE,
-        ProjectionExpression: "fundId",
+        ProjectionExpression: "userId",
       })
     );
 
-    const uniqueFunds = [
-      ...new Set((portfolioFunds.Items || []).map((item) => item.fundId)),
+    // Get unique user IDs
+    const userIds = [
+      ...new Set((usersResult.Items || []).map((item) => item.userId)),
     ];
 
-    // Update NAV for each fund
+    // Process each user's portfolio
     await Promise.all(
-      uniqueFunds.map(async (fundId) => {
-        try {
-          const response = await rapidApiClient.get("/latest", {
-            params: { schemeCode: fundId },
-          });
+      userIds.map(async (userId) => {
+        // Get user's portfolio
+        const portfolioResult = await dynamoDb.send(
+          new QueryCommand({
+            TableName: process.env.PORTFOLIO_TABLE,
+            KeyConditionExpression: "userId = :userId",
+            ExpressionAttributeValues: {
+              ":userId": userId,
+            },
+          })
+        );
 
-          await dynamoDb.send(
-            new PutCommand({
-              TableName: process.env.FUND_TRACKING_TABLE,
-              Item: {
-                fundId,
-                timestamp: new Date().toISOString(),
-                nav: response.data.nav,
-                lastUpdated: response.data.lastUpdated,
-              },
-            })
-          );
-        } catch (error) {
-          console.error(`Error updating NAV for fund ${fundId}:`, error);
+        if (!portfolioResult.Items?.length) {
+          return;
         }
+
+        // Calculate total value
+        let totalValue = 0;
+        await Promise.all(
+          portfolioResult.Items.map(async (item) => {
+            const navResult = await dynamoDb.send(
+              new QueryCommand({
+                TableName: process.env.FUND_TRACKING_TABLE,
+                KeyConditionExpression: "fundId = :fundId",
+                ExpressionAttributeValues: {
+                  ":fundId": item.fundId,
+                },
+                Limit: 1,
+                ScanIndexForward: false,
+              })
+            );
+
+            const currentNav = navResult.Items?.[0]?.nav || item.purchasePrice;
+            totalValue += item.units * currentNav;
+          })
+        );
+
+        // Store the calculated value
+        await dynamoDb.send(
+          new PutCommand({
+            TableName: process.env.PORTFOLIO_VALUE_TABLE,
+            Item: {
+              userId,
+              totalValue,
+              timestamp: new Date().toISOString(),
+            },
+          })
+        );
       })
     );
 
-    console.log("NAV updates completed successfully");
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: "Portfolio values updated successfully",
+        usersProcessed: userIds.length,
+      }),
+    };
   } catch (error) {
-    console.error("Error in NAV update process:", error);
+    console.error("Error updating portfolio values:", error);
     throw error;
   }
 };

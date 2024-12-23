@@ -28,7 +28,7 @@ const generatePolicy = (
 ): AuthResponse => {
   const authResponse: AuthResponse = {
     principalId,
-    context, // Add the context to the response
+    context, 
   };
 
   if (effect && resource) {
@@ -71,9 +71,6 @@ export const handler = async (event: {
 
     try {
       decoded = jwt.verify(tokenValue, jwtSecret.JWT_SECRET as jwt.Secret);
-      console.log("tokenValue:", tokenValue);
-      console.log("jwtSecret:", jwtSecret.JWT_SECRET);
-      console.log("decoded:", decoded);
     } catch (error) {
       console.error("Error verifying token:", error);
     }
