@@ -1,7 +1,7 @@
 dev:
   JWT_SECRET: dev/auth/jwt
   USERS_TABLE: users-table
-  RAPIDAPI_KEY: 3604ca55e9msh076324190b6d4bap17e118jsn2f6c159748b2
+  RAPIDAPI_KEY: dev/rapidapikey
   FUND_TRACKING_TABLE: mutual-fund-tracking-table
   PORTFOLIO_TABLE: portfolio-table
   PORTFOLIO_VALUE_TABLE: portfolio-update-table

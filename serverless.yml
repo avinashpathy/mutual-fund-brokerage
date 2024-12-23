@@ -39,6 +39,10 @@ provider:
       Action:
         - secretsmanager:GetSecretValue
       Resource: arn:aws:secretsmanager:${self:provider.region}:${self:custom.accountId}:secret:dev/auth/jwt*
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+      Resource: arn:aws:secretsmanager:${self:provider.region}:${self:custom.accountId}:secret:dev/rapidapikey*
 
 plugins:
   - serverless-webpack
