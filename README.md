@@ -9,8 +9,8 @@
   - <b>Portfolio Handler</b>: This handler code is used to add, view and delete investments of an user.
   - <b>Update NAVS Handler</b>: This handler code is used to track current value of the investments hourly.
 
-
 <b>Setup and Testing:</b>
+
 - Prerequisites:
 
   - Install Node.js (18.x or later) and npm (8.x or later) on your machine.
@@ -27,7 +27,8 @@
 
     - aws secretsmanager create-secret --name dev/auth/jwt --secret-string '{"JWT_SECRET":"ADD_YOUR_SECRET"}'
     - aws secretsmanager create-secret --name dev/rapidapikey --secret-string '{"RAPIDAPI_KEY":"ADD_YOUR_API_KEY"}'
-  - Update the serverless.yml and sls.environments.yml file with your AWS region and other configuration settings as needed. 
+
+  - Update the serverless.yml and sls.environments.yml file with your AWS region and other configuration settings as needed.
 
 - Deployment
 
@@ -55,7 +56,8 @@
     - For /mutual-funds and /portfolio, you have to choose Auth Type as JWT Bearer and give the secret what you have created in AWS Secrets Manager.
 
 - Database Creation:
-  - Databases are created using Serverless framework. 
-  - Here is the link to the resource creation code (Line 125-205): https://github.com/avinashpathy/mutual-fund-brokerage/blob/5736a0e57f7221e571b2b36678f94a7cd4a09527/serverless.yml#L125
+
+  - Databases are created using Serverless framework.
+  - Here is the link to the resource creation code (Line 125-205): https://github.com/avinashpathy/mutual-fund-brokerage/blob/5736a0e57f7221e571b2b36678f94a7cd4a09527/serverless.yml#L125-L205
 
   Please feel free to reach out to <a href = "avinashpathy2001@gmail.com">avinashpathy2001@gmail.com</a> if you have any doubts.
